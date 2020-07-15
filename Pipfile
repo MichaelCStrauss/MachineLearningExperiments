@@ -9,6 +9,7 @@ tensorflow-gpu = "*"
 jupyter = "*"
 d2l = "*"
 matplotlib = "*"
+pylint = "*"
 
 [dev-packages]
 black = "*"
