@@ -19,10 +19,12 @@ model = tf.keras.models.load_model('saved_models/' + model_time)
 logger.info("Model loaded.")
 
 # %%
-def show_images(imgs, num_rows, num_cols, predictions=None, labels=None, scale=1.5):  #@save
+def show_images(imgs, num_rows, num_cols, predictions=None, labels=None, scale=1.5, title=None):  #@save
     """Plot a list of images."""
     figsize = (num_cols * scale, num_rows * scale)
     figure, axes = plt.subplots(num_rows, num_cols, figsize=figsize)
+    if title is not None:
+        figure.suptitle(title)
     figure.tight_layout()
     axes = axes.flatten()
     for i, (ax, img) in enumerate(zip(axes, imgs)):
@@ -43,10 +45,11 @@ def show_images(imgs, num_rows, num_cols, predictions=None, labels=None, scale=1
 with tf.device("/GPU:0"):
     X, y = next(iter(test))
     logger.info("Making predictions...")
+    overall_loss, overall_accuracy = model.evaluate(test)
     predicted = np.argmax(model.predict(X), axis=-1)
     logger.info("Displaying graphs...")
     images = [np.reshape(x, (28, 28)) for x in X]
     predictions = [labels[i] for i in predicted]
     l = [labels[i] for i in y]
     show_images(images, 16, 8, predictions, l)
-    plt.show()
+    plt.savefig(f'./outputs/predictions-{model_time}.png')
