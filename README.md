@@ -54,6 +54,6 @@ None
 
 After training for 10 epochs, the model was able to acheive 95% accuracy on the test set of 1000 images. Here is a sample output of one 128 image batch:
 
-![Prediction Output](./outputs/predictions-2020-07-18T08:46:20.373203.png)
+![Prediction Output](./6_quickdraw_dataset/outputs/predictions-2020-07-18T08:46:20.373203.png)
 
 The training accuract after 10 epochs was similar to the test accuracy. Future experiments could explore a more complex model, as the data does not seem to overfit.
