@@ -10,6 +10,10 @@ jupyter = "*"
 d2l = "*"
 matplotlib = "*"
 pylint = "*"
+tqdm = "*"
+pyarrow = "*"
+tensorflow-io = "*"
+loguru = "*"
 
 [dev-packages]
 black = "*"
