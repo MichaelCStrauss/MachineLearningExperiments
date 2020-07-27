@@ -1,0 +1,7 @@
+saved_models/
+*.npy
+data
+data/
+checkpoints/
+logs/
+embeddings.pickle

@@ -16,9 +16,12 @@ tensorflow-io = "*"
 loguru = "*"
 nltk = "*"
 click = "*"
+torch = "*"
+torchtext = "*"
 
 [dev-packages]
 black = "*"
+flake8 = "*"
 
 [requires]
 python_version = "3.8"
