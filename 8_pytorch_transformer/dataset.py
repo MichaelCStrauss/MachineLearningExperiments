@@ -49,7 +49,7 @@ count = collections.Counter(tokens)
 # %%
 token_freqs = sorted(count.items(), key=lambda x: x[1], reverse=True)
 
-min_freq = 2
+min_freq = 3
 unique_tokens = [token for token, freq in token_freqs if freq >= min_freq]
 
 # %%

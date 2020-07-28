@@ -57,6 +57,16 @@ def train():
         if batch > 0 and batch % 100 == 0:
             logger.info(f"Batch {batch}: train loss {total_loss / 100}")
             total_loss = 0
+        if batch > 0 and batch % 500 == 0:
+            torch.save(
+                {
+                    "batch": batch,
+                    "model_state": model.state_dict(),
+                    "optimizer_state": optimizer.state_dict(),
+                },
+                "saved_models/model.pt",
+            )
+            logger.info(f"Checkpoint saved for batch {batch}")
 
 
 # %%
@@ -81,14 +91,14 @@ for epoch in range(1, num_epochs + 1):
     val_loss = None
     # scheduler.step()
 
-    logger.info(f"Epoch {epoch}: Val Loss: {val_loss}")
+    # logger.info(f"Epoch {epoch}: Val Loss: {val_loss}")
 
     torch.save(
         {
             "epoch": epoch,
             "model_state": model.state_dict(),
             "optimizer_state": optimizer.state_dict(),
-            "loss": val_loss,
+            # "loss": val_loss,
         },
         "saved_models/model.pt",
     )
