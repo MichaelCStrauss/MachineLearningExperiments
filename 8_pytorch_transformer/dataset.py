@@ -30,8 +30,14 @@ else:
         if index == 0:
             continue
         review_sentences: List[str] = nltk.sent_tokenize(review[2].lower())
-        for sentence in review_sentences:
-            sentences.append(sentence.replace("<br /><br />", " "))
+        for i in range(len(review_sentences) // 3):
+            sentences.append(
+                review_sentences[3 * i].replace("<br /><br />", " ")
+                + " "
+                + review_sentences[3 * i + 1].replace("<br /><br />", " ")
+                + " "
+                + review_sentences[3 * i + 2].replace("<br /><br />", " ")
+            )
 
     tokenized_sentences = []
     logger.info("Tokenising sentences")
@@ -84,7 +90,7 @@ logger.info(
 )
 
 # %%
-seq_length = 32
+seq_length = 64
 corpus = [
     [token_index.get_index(tk) for tk in sentence]
     for sentence in tokenized_sentences
@@ -101,7 +107,7 @@ class Dataset(torch.utils.data.Dataset):
         item = self.corpus[idx]
         mask = [1.0 for _ in range(len(item))]
         while len(item) <= seq_length:
-            item.append(token_index.token_to_index['<pad>'])
+            item.append(token_index.token_to_index["<pad>"])
             mask.append(0.0)
 
         return (
@@ -115,6 +121,4 @@ class Dataset(torch.utils.data.Dataset):
 
 
 dataset = Dataset(corpus)
-dataloader = torch.utils.data.DataLoader(
-    dataset, batch_size=64, shuffle=False
-)
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False)

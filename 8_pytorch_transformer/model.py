@@ -131,7 +131,7 @@ class TransformerModel(nn.Module):
 
         self.embeddings = nn.Embedding(vocab_size, num_dimensions)
 
-        self.output = nn.Linear(num_dimensions, vocab_size)
+        self.output = nn.Linear(num_dimensions, vocab_size, bias=False)
 
     def init_weights(self, embeddings):
         self.apply(self._init_weights)
@@ -145,6 +145,7 @@ class TransformerModel(nn.Module):
                 module.bias.data.zero_()
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
 
     def forward(self, X, attention_mask=None):
         # Attention mask.
@@ -180,7 +181,7 @@ def build_model(device, ntokens):
     )
     nlayers = 12  # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
     nhead = 10  # the number of heads in the multiheadattention models
-    dropout = 0.2  # the dropout value
+    dropout = 0.0  # the dropout value
     model = TransformerModel(ntokens, emsize, nhead, nhid, nlayers, dropout).to(device)
 
     return model
