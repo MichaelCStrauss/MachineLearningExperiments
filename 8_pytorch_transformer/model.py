@@ -20,6 +20,18 @@ class Conv1D(nn.Module):
         return x
 
 
+class MLP(nn.Module):
+    def __init__(self, dropout, d_model=768, nx=768 * 4):
+        super().__init__()
+        self.c_fc = Conv1D(d_model, nx)
+        self.c_proj = Conv1D(nx, d_model)
+        self.act = F.gelu
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        return self.dropout(self.c_proj(self.act(self.c_fc(x))))
+
+
 class Attention(nn.Module):
     def __init__(
         self, d_model=768, n_head=12, n_ctx=1024, d_head=64, bias=True, scale=False
@@ -88,14 +100,14 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
-class DecoderBlock(nn.Module):
+class TransformerBlock(nn.Module):
     def __init__(self, num_dimensions, num_heads, ffn, dropout=0.2):
-        super(DecoderBlock, self).__init__()
+        super(TransformerBlock, self).__init__()
         self.num_dimensions = num_dimensions
-        self.ln1 = nn.LayerNorm(num_dimensions)
-        self.attention = Attention(num_dimensions, num_heads, 256)
-        self.ln2 = nn.LayerNorm(num_dimensions)
-        self.feedforward = nn.Linear(num_dimensions, num_dimensions)
+        self.ln_1 = nn.LayerNorm(num_dimensions)
+        self.attn = Attention(num_dimensions, num_heads, 1024)
+        self.ln_2 = nn.LayerNorm(num_dimensions)
+        self.mlp = MLP(dropout, num_dimensions, num_dimensions*4)
 
     # def forward(self, X, attention_mask=None):
     #     X = self.ln1(X)
@@ -107,9 +119,8 @@ class DecoderBlock(nn.Module):
     #     return X
 
     def forward(self, X, attention_mask=None):
-        X = self.ln1(X)
-        X = X + self.attention(X, attention_mask)
-        X = X + self.feedforward(self.ln2(X))
+        X = X + self.attn(self.ln_1(X), attention_mask)
+        X = X + self.mlp(self.ln_2(X))
         return X
 
 
@@ -120,23 +131,25 @@ class TransformerModel(nn.Module):
         super(TransformerModel, self).__init__()
 
         self.num_dimensions = num_dimensions
-        self.pos_encoder = PositionalEncoding(num_dimensions, dropout)
+        self.drop = nn.Dropout(dropout)
 
-        self.blocks = nn.ModuleList(
+        self.h = nn.ModuleList(
             [
-                DecoderBlock(num_dimensions, num_heads, ffn, dropout)
+                TransformerBlock(num_dimensions, num_heads, ffn, dropout)
                 for _ in range(num_layers)
             ]
         )
 
-        self.embeddings = nn.Embedding(vocab_size, num_dimensions)
+        self.wte = nn.Embedding(vocab_size, num_dimensions)
+        self.wpe = nn.Embedding(1024, num_dimensions)
 
-        self.output = nn.Linear(num_dimensions, vocab_size, bias=False)
+        self.ln_f = nn.LayerNorm(num_dimensions)
 
-    def init_weights(self, embeddings):
+        self.out = nn.Linear(num_dimensions, vocab_size, bias=False)
+
+    def init_weights(self):
+        self.out.weight = self.wte.weight
         self.apply(self._init_weights)
-        self.embeddings.load_state_dict({"weight": embeddings})
-        self.output.weight = self.embeddings.weight
 
     def _init_weights(self, module):
         if isinstance(module, (nn.Linear, nn.Embedding)):
@@ -163,14 +176,17 @@ class TransformerModel(nn.Module):
             # positions we want to attend and -10000.0 for masked positions.
             # Since we are adding it to the raw scores before the softmax, this is
             # effectively the same as removing these entirely.
-            attention_mask = attention_mask.to(dtype=next(self.parameters()).dtype)  # fp16 compatibility
+            attention_mask = attention_mask.to(
+                dtype=next(self.parameters()).dtype
+            )  # fp16 compatibility
             attention_mask = (1.0 - attention_mask) * -10000.0
 
-        X = self.embeddings(X) * math.sqrt(self.num_dimensions)
-        X = self.pos_encoder(X)
-        for block in self.blocks:
+        pos_ids = torch.arange(0, X.size(-1)).unsqueeze(0).to("cuda")
+        X = self.drop((self.wte(X)+self.wpe(pos_ids)))
+        for block in self.h:
             X = block(X, attention_mask)
-        output = self.output(X)
+        X = self.ln_f(X)
+        output = self.out(X)
         return output
 
 
@@ -181,7 +197,9 @@ def build_model(device, ntokens):
     )
     nlayers = 12  # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
     nhead = 10  # the number of heads in the multiheadattention models
-    dropout = 0.0  # the dropout value
-    model = TransformerModel(ntokens, emsize, nhead, nhid, nlayers, dropout).to(device)
+    dropout = 0.1  # the dropout value
+    model = TransformerModel(ntokens, emsize, nhead, nhid, nlayers, dropout)
+    model.init_weights()
+    model = model.to(device)
 
     return model

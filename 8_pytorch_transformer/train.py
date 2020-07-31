@@ -31,8 +31,9 @@ for i, word in enumerate(tqdm(token_index.index_to_token)):
 
 logger.info("Prepared weights...")
 
-model.init_weights(embeddings_weight)
-
+model.wte.load_state_dict({"weight": embeddings_weight})
+model.out.weight = model.wte.weight
+print(model.wte.weight)
 
 # %%
 def train():
@@ -46,7 +47,7 @@ def train():
         # mask = mask.reshape((mask.shape[1], mask.shape[0]))
         optimizer.zero_grad()
         output = model(x, attention_mask=mask)
-        loss_x = output.view(-1, ntokens)
+        loss_x = output.view(-1, output.size(-1))
         loss_y = y.view(-1)
         loss = loss_fn(loss_x, loss_y)
         loss.backward()
