@@ -18,6 +18,7 @@ nltk = "*"
 click = "*"
 torch = "*"
 torchtext = "*"
+gym = "*"
 
 [dev-packages]
 black = "*"
